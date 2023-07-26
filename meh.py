@@ -1,16 +1,13 @@
-import logging
-from sd_meh.merge import merge_models, save_model
 import inspect
+from pathlib import Path
+
+import torch
+from comfy import model_detection, model_management
+from comfy.sd import CLIP, VAE, ModelPatcher, calculate_parameters, load_model_weights
 from sd_meh import merge_methods
+from sd_meh.merge import merge_models
 from sd_meh.presets import BLOCK_WEIGHTS_PRESETS
 from sd_meh.utils import weights_and_bases
-from pathlib import Path
-from comfy import model_management
-from comfy.sd import calculate_parameters, load_model_weights, VAE, CLIP, ModelPatcher
-import torch
-from comfy import model_detection, clip_vision
-
-logging.basicConfig(format="%(levelname)s: %(message)s", level="DEBUG")
 
 base_path = Path(__file__).parent.absolute().parent.parent
 models_dir = Path(base_path, "models", "checkpoints")
