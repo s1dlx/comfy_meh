@@ -5,6 +5,10 @@ from sd_meh import merge_methods
 from sd_meh.presets import BLOCK_WEIGHTS_PRESETS
 from sd_meh.utils import weights_and_bases
 from pathlib import Path
+from comfy import model_management
+from comfy.sd import calculate_parameters, load_model_weights, VAE, CLIP, ModelPatcher
+import torch
+from comfy import model_detection, clip_vision
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level="DEBUG")
 
@@ -24,6 +28,62 @@ def get_checkpoints():
     return {c.stem: c for c in checkpoints}
 
 
+def split_model(
+    sd,
+    output_clip=True,
+    output_vae=True,
+):
+    sd_keys = sd.keys()
+    clip = None
+    vae = None
+    model = None
+    clip_target = None
+
+    parameters = calculate_parameters(sd, "model.diffusion_model.")
+    fp16 = model_management.should_use_fp16(model_params=parameters)
+
+    class WeightsLoader(torch.nn.Module):
+        pass
+
+    model_config = model_detection.model_config_from_unet(
+        sd, "model.diffusion_model.", fp16
+    )
+    if model_config is None:
+        raise RuntimeError("ERROR: Could not detect model type")
+
+    offload_device = model_management.unet_offload_device()
+    model = model_config.get_model(sd, "model.diffusion_model.")
+    model = model.to(offload_device)
+    model.load_model_weights(sd, "model.diffusion_model.")
+    if output_vae:
+        vae = VAE()
+        w = WeightsLoader()
+        w.first_stage_model = vae.first_stage_model
+        load_model_weights(w, sd)
+
+    if output_clip:
+        w = WeightsLoader()
+        clip_target = model_config.clip_target()
+        clip = CLIP(clip_target, embedding_directory=None)
+        w.cond_stage_model = clip.cond_stage_model
+        sd = model_config.process_clip_state_dict(sd)
+        load_model_weights(w, sd)
+
+    left_over = sd.keys()
+    if len(left_over) > 0:
+        print("left over keys:", left_over)
+
+    return (
+        ModelPatcher(
+            model,
+            load_device=model_management.get_torch_device(),
+            offload_device=offload_device,
+        ),
+        clip,
+        vae,
+    )
+
+
 class MergingExecutionHelper:
     ckpts = get_checkpoints()
 
@@ -39,8 +99,6 @@ class MergingExecutionHelper:
             ),
         }
         optional = {
-            "merge_name": ("STRING", {"default": "model_out"}),
-            "output_format": (["safetensors", "ckpt"], {"default": "safetensors"}),
             "precision": ([16, 32], {"default": 16}),
             "model_c": (["None"] + list(self.ckpts.keys()), {"default": None}),
             "base_beta": (
@@ -90,8 +148,7 @@ class MergingExecutionHelper:
             "optional": optional,
         }
 
-    RETURN_TYPES = ()
-    OUTPUT_NODE = True
+    RETURN_TYPES = ("MODEL", "CLIP", "VAE")
     FUNCTION = "merge"
     CATEGORY = "meh"
 
@@ -155,9 +212,7 @@ class MergingExecutionHelper:
             kwargs["threads"],
         )
 
-        save_model(merged, Path(models_dir, kwargs["merge_name"]), kwargs["output_format"])
-
-        return {}
+        return split_model(merged.to_dict())
 
 
 NODE_CLASS_MAPPINGS = {
