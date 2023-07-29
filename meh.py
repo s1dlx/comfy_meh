@@ -110,8 +110,8 @@ class MergingExecutionHelper:
                 {"default": 10, "min": 0, "max": 1000, "step": 1},
             ),
             "weights_clip": (["disabled", "enabled"], {"default": "disabled"}),
-            "device": (["cpu", "gpu"], {"default": "cpu"}),
-            "work_device": (["cpu", "gpu"], {"default": "cpu"}),
+            "device": (["cpu", "cuda"], {"default": "cpu"}),
+            "work_device": (["cpu", "cuda"], {"default": "cpu"}),
             "threads": ("INT", {"default": 1, "min": 1, "step": 1}),
             "prune": (["disabled", "enabled"], {"default": "disabled"}),
             "block_weights_preset_alpha": (
