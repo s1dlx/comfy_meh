@@ -1,3 +1,4 @@
 sd-meh==0.9.3
 torch
+tensordict
 
