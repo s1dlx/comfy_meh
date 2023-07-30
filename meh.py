@@ -2,6 +2,7 @@ import inspect
 from pathlib import Path
 
 import torch
+from tensordict import TensorDict
 from comfy import model_detection, model_management
 from comfy.sd import CLIP, VAE, ModelPatcher, calculate_parameters, load_model_weights
 from sd_meh import merge_methods
@@ -209,7 +210,9 @@ class MergingExecutionHelper:
             kwargs["threads"],
         )
 
-        return split_model(merged.to_dict())
+        if isinstance(merged, TensorDict):
+            return split_model(merged.to_dict())
+        return merged
 
 
 NODE_CLASS_MAPPINGS = {
