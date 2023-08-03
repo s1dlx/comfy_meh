@@ -1,4 +1,5 @@
 sd-meh==0.9.4
 torch
 tensordict
+pyyaml
 

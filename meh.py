@@ -2,28 +2,36 @@ import inspect
 from pathlib import Path
 
 import torch
-from tensordict import TensorDict
+import yaml
 from comfy import model_detection, model_management
-from folder_paths import models_dir as comfy_models_path
 from comfy.sd import CLIP, VAE, ModelPatcher, calculate_parameters, load_model_weights
+from folder_paths import models_dir as comfy_models_path
 from sd_meh import merge_methods
 from sd_meh.merge import merge_models
 from sd_meh.presets import BLOCK_WEIGHTS_PRESETS
 from sd_meh.utils import weights_and_bases
+from tensordict import TensorDict
 
-base_path = Path(__file__).parent.absolute().parent.parent
-models_dir = Path(comfy_models_path, "checkpoints")
+print(Path.cwd())
 
-
+MODELS_DIR = Path(comfy_models_path, "checkpoints")
 MERGE_METHODS = dict(inspect.getmembers(merge_methods, inspect.isfunction))
-EXTS = ("ckpt", "safetensors")
+
+EXTRA_CONFIG_YAML_PATH = Path(".", "extra_model_paths.yaml")
+if EXTRA_CONFIG_YAML_PATH.exists():
+    with EXTRA_CONFIG_YAML_PATH.open() as f:
+        EXTRA_CONFIG_YAML = yaml.safe_load(f)
+else:
+    EXTRA_CONFIG_YAML = {}
 
 
 def get_checkpoints():
     checkpoints = []
-    for ext in EXTS:
-        checkpoints.extend(list(models_dir.glob(f"**/*.{ext}")))
-
+    for ext in ("ckpt", "safetensors"):
+        checkpoints.extend(list(MODELS_DIR.glob(f"**/*.{ext}")))
+        for c in EXTRA_CONFIG_YAML.values():
+            extra_checkpoints_dir = Path(c["base_dir"], c["checkpoints"])
+            checkpoints.extend(list(extra_checkpoints_dir.glob(f"**/*.{ext}")))
     return {c.stem: c for c in checkpoints}
 
 
@@ -32,7 +40,6 @@ def split_model(
     output_clip=True,
     output_vae=True,
 ):
-    sd_keys = sd.keys()
     clip = None
     vae = None
     model = None
@@ -178,7 +185,10 @@ class MergingExecutionHelper:
         ):
             kwargs[k] = None if kwargs[k] == "None" else kwargs[k]
 
-        models = {"model_a": self.ckpts[model_a], "model_b": self.ckpts[model_b]}
+        models = {
+            "model_a": self.ckpts[model_a],
+            "model_b": self.ckpts[model_b],
+        }
         if kwargs["model_c"]:
             models["model_c"] = self.ckpts[kwargs["model_c"]]
 
