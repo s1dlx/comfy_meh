@@ -30,7 +30,9 @@ def get_checkpoints():
     for ext in ("ckpt", "safetensors"):
         checkpoints.extend(list(MODELS_DIR.glob(f"**/*.{ext}")))
         for c in EXTRA_CONFIG_YAML.values():
-            extra_checkpoints_dir = Path(c["base_path"], c["checkpoints"])
+            extra_checkpoints_dir = Path(
+                c["base_path"] if "base_path" in c else "", c["checkpoints"]
+            )
             checkpoints.extend(list(extra_checkpoints_dir.glob(f"**/*.{ext}")))
     return {c.stem: c for c in checkpoints}
 
