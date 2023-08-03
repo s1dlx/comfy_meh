@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 from tensordict import TensorDict
 from comfy import model_detection, model_management
+from folder_paths import models_dir as comfy_models_path
 from comfy.sd import CLIP, VAE, ModelPatcher, calculate_parameters, load_model_weights
 from sd_meh import merge_methods
 from sd_meh.merge import merge_models
@@ -11,7 +12,7 @@ from sd_meh.presets import BLOCK_WEIGHTS_PRESETS
 from sd_meh.utils import weights_and_bases
 
 base_path = Path(__file__).parent.absolute().parent.parent
-models_dir = Path(base_path, "models", "checkpoints")
+models_dir = Path(comfy_models_path, "checkpoints")
 
 
 MERGE_METHODS = dict(inspect.getmembers(merge_methods, inspect.isfunction))
