@@ -1,4 +1,4 @@
-sd-meh==0.9.4
+sd-meh==0.9.5
 torch
 tensordict
 pyyaml
