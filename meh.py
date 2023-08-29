@@ -4,7 +4,8 @@ from pathlib import Path
 import torch
 import yaml
 from comfy import model_detection, model_management
-from comfy.sd import CLIP, VAE, ModelPatcher, load_model_weights
+from comfy.sd import CLIP, VAE, load_model_weights
+from comfy.model_patcher import ModelPatcher
 from comfy.utils import calculate_parameters
 from folder_paths import models_dir as comfy_models_path
 from sd_meh import merge_methods
